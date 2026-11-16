@@ -1,0 +1,30 @@
+{
+  "provider": "alpaca",
+  "watchlist": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "TSLA",
+    "QQQ",
+    "SPY",
+    "AMD",
+    "PLTR",
+    "TEM",
+    "ORCL"
+  ],
+  "positions": [
+    {
+      "symbol": "PLTR",
+      "held": true,
+      "average_entry_price": 124.94,
+      "quantity": 13.0,
+      "entry_date": "2026-08-15",
+      "target_return_pct": 15.0,
+      "stop_loss_pct": -7.0,
+      "trailing_stop_pct": -8.0,
+      "holding_style": "swing",
+      "next_earnings_date": "",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="PulseEdge는 미국 주식 스윙 관찰과 보유종목 관리를 돕는 투자 참고용 PWA입니다.">
+    <meta name="application-name" content="PulseEdge">
+    <meta name="theme-color" content="#0b0d10">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="PulseEdge">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>PulseEdge</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/icon-512.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="auth-gate-open">
+    <section id="authGate" class="auth-gate active" aria-hidden="false">
+      <article class="auth-gate-panel" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
+        <header class="auth-gate-brand">
+          <p class="eyebrow">US swing signal</p>
+          <h1>PulseEdge</h1>
+          <p>시장의 맥박에서 엣지를 찾는다</p>
+        </header>
+        <div class="auth-gate-content">
+          <div>
+            <p class="auth-gate-kicker">로그인 또는 회원가입</p>
+            <h2 id="authGateTitle">계정으로 계속</h2>
+          </div>
+          <p id="authGateStatus" class="auth-gate-copy" aria-live="polite">로그인 연결 확인 중</p>
+          <div id="authGateControls" class="auth-gate-controls" hidden>
+            <button id="authGateGoogleButton" class="ghost-btn auth-gate-provider" type="button" hidden>Google로 계속</button>
+            <div id="authGateEmailRow" class="auth-gate-email" hidden>
+              <label for="authGateEmail">이메일</label>
+              <input id="authGateEmail" type="email" autocomplete="email" placeholder="name@example.com">
+              <button id="authGateEmailButton" class="primary-btn" type="button">이메일로 계속</button>
+            </div>
+          </div>
+          <p id="authGateMessage" class="auth-gate-message" aria-live="polite"></p>
+          <button id="authGateGuestButton" class="auth-gate-guest" type="button" hidden>로그인 없이 둘러보기</button>
+          <p class="auth-gate-footnote">처음 입력한 이메일은 계정이 자동 생성됩니다.</p>
+        </div>
+      </article>
+    </section>
+
+    <main class="app-shell" inert aria-hidden="true">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">US swing signal</p>
+          <h1>PulseEdge</h1>
+          <p id="providerStatus" class="muted">연결 확인 중</p>
+        </div>
+        <div class="header-actions">
+          <div class="header-action-buttons">
+            <button id="notifyButton" class="ghost-btn" type="button">알림</button>
+            <button id="analyzeButton" class="primary-btn" type="button">분석</button>
+          </div>
+          <span id="notificationStatus" class="notification-status">알림 상태 확인 중</span>
+        </div>
+      </header>
+
+      <div id="dataStatusPanel" class="data-status-panel" hidden></div>
+
+      <section id="tab-home" class="tab-page active">
+        <div id="marketPanel" class="market-panel"></div>
+        <div class="summary-grid">
+          <div class="metric-tile"><span>대기</span><strong id="countNormal">0</strong></div>
+          <div class="metric-tile"><span>관심</span><strong id="countInterest">0</strong></div>
+          <div class="metric-tile"><span>기회</span><strong id="countOpportunity">0</strong></div>
+          <div class="metric-tile"><span>주의</span><strong id="countCaution">0</strong></div>
+          <div class="metric-tile"><span>위험</span><strong id="countDanger">0</strong></div>
+        </div>
+        <section class="section-block">
+          <div class="section-title">
+            <h2>오늘 볼 종목</h2>
+            <span id="todayPickCount"></span>
+          </div>
+          <div id="todayPicks" class="today-picks"></div>
+        </section>
+        <section class="section-block">
+          <div class="section-title">
+            <h2>오늘의 핵심</h2>
+            <span id="lastUpdated"></span>
+          </div>
+          <div id="topAlerts" class="compact-list"></div>
+        </section>
+        <section class="section-block">
+          <div class="section-title">
+            <h2>진입 관찰</h2>
+          </div>
+          <div id="opportunityList" class="compact-list"></div>
+        </section>
+      </section>
+
+      <section id="tab-watchlist" class="tab-page">
+        <div class="section-title">
+          <h2>관심종목</h2>
+          <span id="watchlistCount"></span>
+        </div>
+        <div class="watch-quick-add">
+          <input id="watchQuickAddInput" placeholder="티커 추가: AMD NVDA">
+          <button id="watchQuickAddButton" class="primary-btn small" type="button">추가</button>
+        </div>
+        <div class="watch-tools">
+          <div id="watchFilterBar" class="filter-bar" aria-label="관심종목 필터">
+            <button class="filter-chip active" type="button" data-watch-filter="all">전체</button>
+            <button class="filter-chip" type="button" data-watch-filter="buy">진입검토</button>
+            <button class="filter-chip" type="button" data-watch-filter="rebound">반등체크</button>
+            <button class="filter-chip" type="button" data-watch-filter="interest">관심</button>
+            <button class="filter-chip" type="button" data-watch-filter="caution">주의</button>
+            <button class="filter-chip" type="button" data-watch-filter="hide_waiting">대기숨김</button>
+          </div>
+          <label class="watch-sort">
+            <span>정렬</span>
+            <select id="watchSort">
+              <option value="score_desc">점수 높은순</option>
+              <option value="support_near">지지선 가까운순</option>
+              <option value="resistance_near">저항선 가까운순</option>
+              <option value="rsi_low">RSI 낮은순</option>
+              <option value="volume_high">거래량 높은순</option>
+              <option value="change_abs">등락률 큰순</option>
+              <option value="symbol_asc">이름순</option>
+            </select>
+          </label>
+        </div>
+        <div id="watchlistCards" class="stock-grid"></div>
+      </section>
+
+      <section id="tab-positions" class="tab-page">
+        <div class="section-title">
+          <h2>보유종목</h2>
+          <span id="positionCount"></span>
+        </div>
+        <div id="positionCards" class="stock-grid"></div>
+      </section>
+
+      <section id="tab-signals" class="tab-page">
+        <div class="section-title">
+          <h2>신호 로그</h2>
+          <div class="section-actions">
+            <span id="signalLogMeta"></span>
+            <button id="markLogReadButton" class="ghost-btn small" type="button">확인</button>
+            <button id="clearLogButton" class="ghost-btn small" type="button">지우기</button>
+          </div>
+        </div>
+        <div class="signal-policy">
+          <strong>새 신호 기준</strong>
+          <span>같은 종목·관점·신호·거래일은 한 번만 기록하고, 첫 분석은 푸시 없이 로그로 확인합니다.</span>
+        </div>
+        <div id="signalLogRangeBar" class="filter-bar signal-range-bar" aria-label="신호 로그 기간"></div>
+        <div id="signalLogFilterBar" class="filter-bar signal-filter-bar" aria-label="신호 로그 필터"></div>
+        <div id="signalLog" class="signal-log"></div>
+      </section>
+
+      <section id="tab-settings" class="tab-page">
+        <div class="section-title">
+          <h2>설정</h2>
+          <button id="saveButton" class="primary-btn small" type="button">저장</button>
+        </div>
+        <form id="settingsForm" class="settings-stack">
+          <section class="settings-card">
+            <h3>앱 설치</h3>
+            <div id="installPanel" class="install-panel"></div>
+          </section>
+
+          <section class="settings-card account-card" aria-labelledby="accountTitle">
+            <div class="account-card-head">
+              <div>
+                <h3 id="accountTitle">계정</h3>
+                <p id="accountStatus" class="muted compact-copy">게스트 상태 확인 중</p>
+              </div>
+              <span id="accountBadge" class="credential-status">게스트</span>
+            </div>
+            <div id="accountSetupNote" class="account-note" hidden>로그인 서버 설정 전입니다. 현재 데이터는 이 브라우저의 게스트 공간에 저장됩니다.</div>
+            <div id="accountGuestActions" class="account-actions" hidden>
+              <button id="googleLoginButton" class="ghost-btn account-provider-button" type="button" hidden>Google로 계속</button>
+              <div id="emailLoginRow" class="account-email-row" hidden>
+                <input id="accountEmail" type="email" autocomplete="email" placeholder="이메일 주소" aria-label="로그인 이메일">
+                <button id="emailLoginButton" class="primary-btn small" type="button">로그인 링크</button>
+              </div>
+            </div>
+            <div id="accountSignedInActions" class="account-actions" hidden>
+              <button id="logoutButton" class="ghost-btn small" type="button">로그아웃</button>
+              <button id="deleteAccountButton" class="ghost-btn small danger-btn" type="button">계정 및 데이터 삭제</button>
+              <small id="accountDeletionNote" class="account-delete-note" hidden>서버의 계정 삭제 설정이 필요합니다.</small>
+            </div>
+          </section>
+
+          <section class="settings-card">
+            <h3>데이터</h3>
+            <div class="data-source-summary">
+              <div>
+                <span>차트</span>
+                <strong>TradingView</strong>
+              </div>
+              <div>
+                <span>PulseEdge 분석</span>
+                <strong id="analysisDataSource">샘플 데이터</strong>
+              </div>
+              <p id="analysisDataNote">공개 이용이 가능한 시세 공급원을 연결하기 전까지 점수와 자동 지지·저항은 기능 확인용입니다.</p>
+            </div>
+            <div class="settings-grid">
+              <label>
+                새로고침 분
+                <input id="refreshMinutes" type="number" min="15" max="240" step="1">
+              </label>
+              <label>
+                기본 차트
+                <select id="defaultTimeframe">
+                  <option value="D">일봉</option>
+                  <option value="W">주봉</option>
+                </select>
+              </label>
+              <label>
+                기본 기간
+                <select id="defaultRange">
+                  <option value="3M">3개월</option>
+                  <option value="6M">6개월</option>
+                  <option value="1Y">1년</option>
+                  <option value="ALL">전체</option>
+                </select>
+              </label>
+            </div>
+            <div id="dataHealthOverview" class="data-health-overview" aria-live="polite"></div>
+            <div id="dataDisclosurePanel" class="data-disclosure"></div>
+          </section>
+
+          <section class="settings-card">
+            <h3>관심종목</h3>
+            <div class="symbol-add">
+              <input id="symbolAddInput" placeholder="예: AMD">
+              <button id="addSymbolButton" class="primary-btn small" type="button">추가</button>
+            </div>
+            <div id="watchlistPills" class="watchlist-pills"></div>
+            <details class="inline-collapse">
+              <summary>목록 직접 편집</summary>
+              <textarea id="watchlist" class="watchlist-raw" spellcheck="false"></textarea>
+            </details>
+          </section>
+
+          <details class="settings-card settings-collapse" id="signalCriteriaSettings">
+            <summary class="settings-collapse-title">
+              <span>
+                <strong>신호 기준</strong>
+                <small id="signalCriteriaMeta">RSI/거래량/VIX 기준</small>
+              </span>
+            </summary>
+            <div class="settings-collapse-body">
+              <div class="settings-grid">
+                <label>
+                  RSI 과매도
+                  <input id="rsiOversold" type="number" min="1" max="50" step="1">
+                </label>
+                <label>
+                  RSI 깊은 과매도
+                  <input id="rsiDeepOversold" type="number" min="1" max="50" step="1">
+                </label>
+                <label>
+                  RSI 회복
+                  <input id="rsiRecovery" type="number" min="1" max="70" step="1">
+                </label>
+                <label>
+                  RSI 과열
+                  <input id="rsiOverheated" type="number" min="50" max="99" step="1">
+                </label>
+                <label>
+                  거래량 배수
+                  <input id="volumeSpike" type="number" min="1" max="10" step="0.1">
+                </label>
+                <label>
+                  갭 기준 %
+                  <input id="gapPct" type="number" min="0.5" max="20" step="0.1">
+                </label>
+                <label>
+                  VIX 주의
+                  <input id="vixElevated" type="number" min="10" max="80" step="0.5">
+                </label>
+                <label>
+                  VIX 공포
+                  <input id="vixFear" type="number" min="10" max="80" step="0.5">
+                </label>
+                <label>
+                  VIX 극단
+                  <input id="vixPanic" type="number" min="10" max="90" step="0.5">
+                </label>
+                <label>
+                  VIX 5D 급등 %
+                  <input id="vixSpike" type="number" min="5" max="200" step="1">
+                </label>
+              </div>
+            </div>
+          </details>
+
+          <details class="settings-card settings-collapse" id="scoreGuideSettings">
+            <summary class="settings-collapse-title">
+              <span>
+                <strong>점수 기준표</strong>
+                <small>Watch/Hold 단계표</small>
+              </span>
+            </summary>
+            <div class="settings-collapse-body">
+              <p class="score-guide-note">점수는 주문 지시가 아니라 검토 우선순위입니다. 실제 주문 전에는 차트, 뉴스, 공시를 다시 확인합니다.</p>
+            <details class="score-guide">
+              <summary>Watch 진입점수</summary>
+              <div class="score-guide-list">
+                <div><strong>85~100</strong><span>진입검토 · 여러 조건이 겹친 강한 후보</span></div>
+                <div><strong>70~84</strong><span>자리검토 · 점수는 좋지만 가격 자리 확인 필요</span></div>
+                <div><strong>62~69</strong><span>반등체크 · 반등이 확정된 뜻이 아니라 추가 확인 구간</span></div>
+                <div><strong>55~61</strong><span>관찰 · 일부 조건만 좋아진 상태</span></div>
+                <div><strong>45~54</strong><span>대기 · 뚜렷한 근거 부족</span></div>
+                <div><strong>30~44</strong><span>주의 · 신규 진입 신중</span></div>
+                <div><strong>0~29</strong><span>진입금지 · 신규 진입 피하는 구간</span></div>
+              </div>
+            </details>
+            <details class="score-guide">
+              <summary>Hold 관리강도</summary>
+              <div class="score-guide-list">
+                <div><strong>90~100</strong><span>강한관리 · 방어/수익보호/비중축소 검토</span></div>
+                <div><strong>80~89</strong><span>관리강화 · 수익 보호나 위험 회피를 자주 확인</span></div>
+                <div><strong>70~79</strong><span>점검필요 · 손절선, 지지선, 트레일링 점검</span></div>
+                <div><strong>60~69</strong><span>집중관리 · 이평선, 거래량, 변동성 확인</span></div>
+                <div><strong>50~59</strong><span>관찰 · 평소보다 약간 더 볼 구간</span></div>
+                <div><strong>30~49</strong><span>안정보유 · 특별한 위험이 적은 구간</span></div>
+                <div><strong>0~29</strong><span>매우안정 · 관리 압력이 낮은 구간</span></div>
+              </div>
+            </details>
+            <details class="score-guide">
+              <summary>핵심 해석</summary>
+              <div class="score-guide-list">
+                <div><strong>기본값</strong><span>Watch는 50점 대기에서 시작하고, Hold는 방어/수익보호 중 큰 쪽을 우선 봅니다.</span></div>
+                <div><strong>시장필터</strong><span>SPY/QQQ 120일선 약세나 VIX 공포는 진입 신호를 낮춰 봅니다.</span></div>
+                <div><strong>손절</strong><span>위험선, S1 지지선, 60일선 이탈은 매도 명령이 아니라 방어 검토 신호입니다.</span></div>
+                <div><strong>수익보호</strong><span>+10/+20/+30 수익 신호는 가장 높은 구간 하나만 적용합니다.</span></div>
+              </div>
+            </details>
+            </div>
+          </details>
+
+          <details class="settings-card settings-collapse" id="positionSettings">
+            <summary class="settings-collapse-title">
+              <span>
+                <strong>보유종목</strong>
+                <small id="positionSettingsMeta">보유 상태</small>
+              </span>
+            </summary>
+            <div class="settings-collapse-body">
+              <div id="positionEditor" class="position-editor"></div>
+            </div>
+          </details>
+
+          <details class="settings-card settings-collapse" id="glossarySettings">
+            <summary class="settings-collapse-title">
+              <span>
+                <strong>용어 설명</strong>
+                <small>주요 지표 12개</small>
+              </span>
+            </summary>
+            <div class="settings-collapse-body">
+              <div class="term-grid">
+                <div><strong>RSI</strong><span>30 이하는 과매도, 70 이상은 과열로 봅니다.</span></div>
+                <div><strong>거래량 배수</strong><span>최근 평균 대비 거래량이 얼마나 붙었는지 봅니다.</span></div>
+                <div><strong>이동평균선</strong><span>20일은 단기, 60일은 중기, 120일은 큰 추세 기준입니다.</span></div>
+                <div><strong>이평 이격</strong><span>현재가가 이동평균선에서 얼마나 떨어졌는지 보는 값입니다.</span></div>
+                <div><strong>볼린저밴드</strong><span>가격이 평소 변동 범위의 아래/위 어디에 있는지 봅니다.</span></div>
+                <div><strong>일목 구름</strong><span>구름 위는 추세 우위, 구름 아래는 약세로 봅니다.</span></div>
+                <div><strong>지지/저항</strong><span>자주 버틴 가격대와 막힌 가격대를 자동으로 잡습니다.</span></div>
+                <div><strong>VIX</strong><span>시장 변동성 지수입니다. PulseEdge 기본 구간은 20 미만 보통, 20~30 주의, 30~40 공포, 40 이상 극단이며 CBOE 공식 일봉 종가를 사용합니다.</span></div>
+                <div><strong>위험선</strong><span>보유 종목이 깨지면 방어를 검토할 가격입니다.</span></div>
+                <div><strong>트레일링</strong><span>매수 후 고점에서 일정 비율 내려오면 수익 보호를 봅니다.</span></div>
+                <div><strong>진입점수</strong><span>미보유 종목의 진입 검토 강도입니다.</span></div>
+                <div><strong>관리강도</strong><span>보유 종목의 방어/수익보호/비중점검 필요성입니다.</span></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="settings-card settings-collapse risk-notice-card" id="riskNoticeSettings">
+            <summary class="settings-collapse-title">
+              <span>
+                <strong>투자 유의</strong>
+                <small>위험 고지와 동의 상태</small>
+              </span>
+            </summary>
+            <div class="settings-collapse-body">
+              <p>PulseEdge는 투자 판단을 돕는 분석 도구입니다. 신호는 수익 보장, 매수/매도 지시, 개인 맞춤 투자자문이 아닙니다.</p>
+              <p>PulseEdge는 초단타나 실시간 주문 판단용 앱이 아닙니다. 일봉/주봉 기반의 스윙 관찰과 보유종목 점검을 돕는 참고 도구입니다.</p>
+              <p>가격과 지표는 지연되거나 오류가 있을 수 있으니 주문 전 차트, 공시, 기업 상황을 직접 확인하세요.</p>
+              <details class="risk-disclosure">
+                <summary>위험 고지 보기</summary>
+                <div class="risk-list">
+                  <div><strong>투자 손실</strong><span>주식 투자는 원금 손실이 발생할 수 있습니다.</span></div>
+                  <div><strong>신호 한계</strong><span>점수와 알림은 과거 가격, 거래량, 지표를 계산한 참고 자료입니다.</span></div>
+                  <div><strong>초단타 아님</strong><span>분봉/틱 단위 매매나 즉시 체결 판단에는 적합하지 않습니다.</span></div>
+                  <div><strong>자문 아님</strong><span>사용자의 재산, 투자성향, 목표수익률을 반영한 개인 맞춤 자문이 아닙니다.</span></div>
+                  <div><strong>주문 대행 아님</strong><span>PulseEdge는 매매를 대신 실행하거나 계좌 운용을 맡지 않습니다.</span></div>
+                  <div><strong>알림 한계</strong><span>푸시나 로그 알림은 지연, 누락, 중복이 생길 수 있습니다.</span></div>
+                  <div><strong>최종 확인</strong><span>실제 주문 전에는 거래 앱, 공시, 뉴스, 리스크를 직접 확인해야 합니다.</span></div>
+                </div>
+              </details>
+              <div class="consent-status-row">
+                <span id="riskConsentStatus" class="muted compact-status">동의 상태 확인 중</span>
+                <button id="resetRiskConsentButton" class="ghost-btn small" type="button">동의 다시 보기</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="settings-card settings-collapse" id="alertPreferenceSettings">
+            <summary class="settings-collapse-title">
+              <span>
+                <strong>알림 선택</strong>
+                <small id="alertSettingsMeta">알림 모드</small>
+              </span>
+            </summary>
+            <div class="settings-collapse-body">
+              <div id="alertPreferenceEditor" class="alert-editor"></div>
+            </div>
+          </details>
+
+          <section class="settings-card support-card" aria-labelledby="supportTitle">
+            <div class="support-copy">
+              <h3 id="supportTitle">문의 및 지원</h3>
+              <p>오류 신고, 의견, 계정 관련 문의</p>
+              <a href="mailto:pulseedge365@gmail.com">pulseedge365@gmail.com</a>
+            </div>
+            <a
+              class="ghost-btn small support-mail-button"
+              href="mailto:pulseedge365@gmail.com?subject=PulseEdge%20문의%20(v0.1)&amp;body=문의%20내용%3A%0A%0A"
+            >메일 보내기</a>
+          </section>
+        </form>
+      </section>
+    </main>
+
+    <section id="stockDetailOverlay" class="detail-overlay" aria-hidden="true">
+      <article id="stockDetailSheet" class="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detailSymbol"></article>
+    </section>
+
+    <nav class="bottom-nav" aria-label="PulseEdge tabs" inert aria-hidden="true">
+      <button class="tab-btn active" type="button" data-tab="home">Home</button>
+      <button class="tab-btn" type="button" data-tab="watchlist">Watch</button>
+      <button class="tab-btn" type="button" data-tab="positions">Hold</button>
+      <button class="tab-btn" type="button" data-tab="signals">Signals</button>
+      <button class="tab-btn" type="button" data-tab="settings">Settings</button>
+    </nav>
+
+    <div id="toastHost" class="toast-host"></div>
+    <section id="riskConsentOverlay" class="consent-overlay" aria-hidden="true">
+      <article class="consent-sheet" role="dialog" aria-modal="true" aria-labelledby="riskConsentTitle">
+        <p class="eyebrow">PulseEdge notice</p>
+        <h2 id="riskConsentTitle">투자 유의 동의</h2>
+        <p>PulseEdge는 미국주식 스윙 판단을 돕는 참고용 분석 도구입니다. 신호와 점수는 수익 보장, 매수/매도 지시, 개인 맞춤 투자자문이 아닙니다.</p>
+        <p>초단타, 분봉/틱 단위 매매, 실시간 주문 판단용이 아니며 일봉/주봉 기반의 관찰과 보유 점검에 맞춰져 있습니다.</p>
+        <div class="consent-points">
+          <div><strong>손실 가능</strong><span>주식 투자는 원금 손실이 발생할 수 있습니다.</span></div>
+          <div><strong>데이터 한계</strong><span>가격, 지표, 알림은 지연되거나 누락될 수 있습니다.</span></div>
+          <div><strong>스윙 기준</strong><span>초단타 판단 전에는 별도의 실시간 시세와 체결 정보를 확인해야 합니다.</span></div>
+          <div><strong>본인 판단</strong><span>실제 주문 전 차트, 공시, 뉴스, 리스크를 직접 확인해야 합니다.</span></div>
+        </div>
+        <label class="consent-check">
+          <input id="riskConsentCheck" type="checkbox">
+          <span>위 내용을 이해했고, 최종 투자 판단과 손익 책임은 사용자 본인에게 있음을 확인합니다.</span>
+        </label>
+        <button id="riskConsentAcceptButton" class="primary-btn" type="button" disabled>동의 후 시작</button>
+      </article>
+    </section>
+    <section id="accountDeleteOverlay" class="consent-overlay" aria-hidden="true">
+      <article class="consent-sheet account-delete-sheet" role="dialog" aria-modal="true" aria-labelledby="accountDeleteTitle" aria-describedby="accountDeleteDescription">
+        <p class="eyebrow danger-copy">Permanent delete</p>
+        <h2 id="accountDeleteTitle">계정과 데이터를 삭제할까요?</h2>
+        <p id="accountDeleteDescription">이 작업은 되돌릴 수 없습니다. Supabase 로그인 계정과 PulseEdge의 관심종목, 보유종목, 평단가, 설정, 동의 기록을 삭제합니다.</p>
+        <div class="consent-points">
+          <div><strong>서버 데이터</strong><span>계정과 연결된 설정 및 투자 기록을 영구 삭제합니다.</span></div>
+          <div><strong>이 기기 데이터</strong><span>신호 로그, 차트 설정, 알림 선택과 동의 기록도 정리합니다.</span></div>
+        </div>
+        <label class="account-delete-confirm">
+          <span>확인을 위해 로그인 이메일을 입력하세요.</span>
+          <input id="accountDeleteEmail" type="email" autocomplete="off" spellcheck="false">
+        </label>
+        <p id="accountDeleteMessage" class="account-delete-message" aria-live="polite"></p>
+        <div class="account-delete-actions">
+          <button id="accountDeleteCancelButton" class="ghost-btn" type="button">취소</button>
+          <button id="accountDeleteConfirmButton" class="danger-btn solid" type="button" disabled>영구 삭제</button>
+        </div>
+      </article>
+    </section>
+    <script src="/app.js"></script>
+  </body>
+</html>
